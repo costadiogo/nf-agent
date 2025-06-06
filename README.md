@@ -112,14 +112,14 @@ seu_arquivo.csv
 ### 💬 Como Usar
 
 1. **Upload dos Dados:**
-   - Na barra lateral arraste o aquivo .zip ou clique em Browse files
+   - Na barra lateral arraste o aquivo .zip/.csv ou clique em Browse files
    - Faça upload do seu arquivo ZIP
    - Clique em "🔄 Processar Arquivo"
 
 2. **Faça Perguntas:**
    - Vá para a aba "💬 Consultas"
    - Digite sua pergunta em português clique enter
-   - Clique em "🔍 Consultar"
+   - Para limpar o histórico de mensagens clique em 🗑️ Limpar Histórico do Chat
 
 ## ⚙️ Configurações Avançadas
 

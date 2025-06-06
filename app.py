@@ -80,7 +80,6 @@ def main():
     )
     
     st.title("📊 Sistema de Análise de Notas Fiscais")
-    st.markdown("*Upload seu arquivo ZIP com aquivos CSV ou CSV e faça perguntas sobre seus dados*")
 
     if 'app' not in st.session_state:
         st.session_state.app = InvoiceApp()
@@ -130,46 +129,62 @@ def main():
         
         tab1, tab2, tab3 = st.tabs(["💬 Consultas", "📋 Visão Geral", "📖 Exemplos"])
         
-        with tab1:
-            st.header("💬 Faça suas perguntas")
-            
-            question = st.text_input(
-                "Digite sua pergunta sobre as notas fiscais:",
-                placeholder="Ex: Qual o valor total das vendas em janeiro?",
-                key="question_input"
-            )
-            
-            col1, col2 = st.columns([1, 4])
-            
-            with col1:
-                if st.button("🔍 Consultar", disabled=not question):
-                    with st.spinner(""):
-                        response = app.query_database(question)
-                    
-                    st.session_state.last_response = response
-                    
-            with col2:
-                if st.button("🧹 Limpar"):
-                    if 'last_response' in st.session_state:
-                        del st.session_state.last_response
+        with tab1:    # Inicializações
+            if "messages" not in st.session_state:
+                st.session_state.messages = []
+            if "processing" not in st.session_state:
+                st.session_state.processing = False
+            if "pending_user_input" not in st.session_state:
+                st.session_state.pending_user_input = None
+                
+            for message in st.session_state.messages:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
+
+            if st.session_state.processing and st.session_state.pending_user_input:
+                with st.chat_message("assistant"):
+                    message_placeholder = st.empty()
+                    full_response = ""
+
+                    try:
+                        with st.spinner(""):
+                            response_data = app.query_database(st.session_state.pending_user_input)
+
+                        if response_data and "output" in response_data:
+                            assistant_response = response_data["output"]
+                            for char in assistant_response:
+                                full_response += char
+                                message_placeholder.markdown(full_response + "▌")
+                                time.sleep(0.03)
+                            message_placeholder.markdown(full_response)
+                        else:
+                            assistant_response = "Desculpe, não consegui processar sua pergunta."
+                            message_placeholder.markdown(assistant_response)
+
+                    except Exception as e:
+                        assistant_response = f"Ocorreu um erro: {e}"
+                        message_placeholder.markdown(assistant_response)
+
+                    st.session_state.messages.append({"role": "assistant", "content": full_response or assistant_response})
+                    st.session_state.processing = False
+                    st.session_state.pending_user_input = None
                     st.rerun()
 
-            if 'last_response' in st.session_state:
-                
-                result = st.session_state.last_response
-                
-                st.markdown("### 📊 Resultado:")
-                
-                response_placeholder = st.empty()
-            
-                full_response = ""
-                output = result['output']
+            prompt = st.chat_input("Digite sua pergunta aqui...", key="user_input")
 
-                for char in output:
-                    full_response += char
-                    formatted_response = full_response.replace("\n", "<br>")
-                    response_placeholder.markdown(formatted_response, unsafe_allow_html=True)
-                    time.sleep(0.01)
+            if prompt:
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                st.session_state.pending_user_input = prompt
+                st.session_state.processing = True
+                st.rerun()
+                
+            st.markdown("*O **Agente** pode cometer erros. Considere verificar informações importantes.*")
+            
+            if st.sidebar.button("🗑️ Limpar Histórico do Chat", key="clear_chat_sidebar"):
+                st.session_state.messages = []
+                st.session_state.pending_user_input = None
+                st.session_state.processing = False
+                st.rerun()
         
         with tab2:
             st.header("📋 Visão Geral dos Dados")

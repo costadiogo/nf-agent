@@ -61,7 +61,7 @@ git clone https://github.com/costadiogo/nf-agent.git
 cd nf-agent
 ```
 
-2. **Criar o ambiente virtual, nâo obrigatório:**
+2. **Criar o ambiente virtual, não obrigatório:**
 ```bash
 python -m venv seu_nome_de_preferência
 ```
@@ -103,39 +103,23 @@ http://localhost:8501
    
 ```
 seu_aquivo.zip
-├── cabecalho.csv
-├── itens.csv
 ├── arquivo_um.csv
 └── aquivo_dois.csv
-```
 
-### 📁 Formato dos Dados
-
-**Exemplo de cabecalho.csv:**
-```csv
-CHAVE DE ACESSO,DATA EMISSÃO,RAZÃO SOCIAL EMITENTE,VALOR TOTAL
-123456,2024-01-15,Cliente A,1500.00
-123457,2024-01-16,Cliente B,2300.50
-```
-
-**Exemplo de itens.csv:**
-```csv
-CHAVE DE ACESSO,DATA EMISSÃO,RAZÃO SOCIAL EMITENTE,VALOR NOTA FISCAL
-123456,Produto X,2,750.00,1500.00
-123457,Produto Y,1,2300.50,2300.50
+seu_arquivo.csv
 ```
 
 ### 💬 Como Usar
 
 1. **Upload dos Dados:**
-   - Na barra lateral arraste o aquivo .zip ou browse
+   - Na barra lateral arraste o aquivo .zip/.csv ou clique em Browse files
    - Faça upload do seu arquivo ZIP
    - Clique em "🔄 Processar Arquivo"
 
 2. **Faça Perguntas:**
    - Vá para a aba "💬 Consultas"
    - Digite sua pergunta em português clique enter
-   - Clique em "🔍 Consultar"
+   - Para limpar o histórico de mensagens clique em 🗑️ Limpar Histórico do Chat
 
 ## ⚙️ Configurações Avançadas
 
@@ -197,7 +181,7 @@ verbose=True  # no create_sql_agent
 ## 📝 Contribuição
 
 1. Fork o projeto
-2. Crie sua branch (`git checkout -b feature/nova-funcionalidade`)
+2. Crie sua branch a partir da dev (`git checkout -b feature/nova-funcionalidade`)
 3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
 4. Push para a branch (`git push origin feature/nova-funcionalidade`)
 5. Abra um Pull Request

@@ -9,8 +9,7 @@ import os
 import tempfile
 import time
 
-
-class NotasFiscaisApp:
+class InvoiceApp:
     def __init__(self):
         self.db_path = None
         self.agent = None
@@ -32,14 +31,11 @@ class NotasFiscaisApp:
             st.error(f"❌ Erro ao criar agente SQL: {str(e)}")
             return False
     
-    
-    
     def query_database(self, question: str) -> str:
         try:
             if not self.agent:
                 return "❌ Agente não configurado. Configure primeiro sua API key."
-            with st.spinner("🔍 Analisando dados..."):
-                response = self.agent.invoke(question)
+            response = self.agent.invoke(question)
             return response
         except Exception as e:
             return f"❌ Erro na consulta: {str(e)}"
@@ -84,19 +80,15 @@ def main():
     )
     
     st.title("📊 Sistema de Análise de Notas Fiscais")
-    st.markdown("*Upload seu arquivo ZIP com aquivos CSV ou CSV e faça perguntas sobre seus dados*")
-    
-    # Inicializar app
+
     if 'app' not in st.session_state:
-        st.session_state.app = NotasFiscaisApp()
+        st.session_state.app = InvoiceApp()
     
     app = st.session_state.app
-    
-    # Sidebar para configuração
+ 
     with st.sidebar:
         st.header("⚙️ Configuração")
-        
-        # API Key
+
         api_key = st.text_input(
             "OpenAI API Key", 
             type="password",
@@ -107,8 +99,7 @@ def main():
             st.success("✅ API Key configurada")
         
         st.markdown("---")
-        
-        # Upload do arquivo
+
         st.header("📁 Upload de Dados")
         uploaded_file = st.file_uploader(
             "Faça upload de de arquivos .ZIP, ou CSV",
@@ -116,72 +107,84 @@ def main():
             help="Arquivo ZIP contendo planilhas CSV das notas fiscais, arquivos CSV individuais com dados de notas fiscais."
         )
             
-        processar = st.button("🔄 Processar Arquivo")
+        process = st.button("🔄 Processar Arquivo")
         status_placeholder = st.empty()
 
-        if uploaded_file and processar:
-        # Enquanto processa, mostra a mensagem com o gif da ampulheta
+        if uploaded_file and process:
             status_placeholder.info("⏳ Processando arquivo, aguarde...")
             time.sleep(1) 
-            # Faz o processamento
-            sucesso = app.setup_database(uploaded_file)
 
-        # Quando termina, atualiza a mensagem para indicar que terminou
-            if sucesso:
+            success = app.setup_database(uploaded_file)
+
+            if success:
                 status_placeholder.success("✅ Arquivo processado com sucesso!")
             else:
-                status_placeholder.error("❌ Erro ao processar o arquivo.")
+                status_placeholder.error("❌ Erro ao process o arquivo.")
                 
-                # Criar agente se API key estiver disponível
             if api_key and app.create_sql_agent(api_key):
                 st.success("✅ Agente configurado!")
                 st.session_state.ready = True
-    
-    # Interface principal
+
     if hasattr(st.session_state, 'ready') and st.session_state.ready:
         
-        # Tabs principais
         tab1, tab2, tab3 = st.tabs(["💬 Consultas", "📋 Visão Geral", "📖 Exemplos"])
         
-        with tab1:
-            st.header("💬 Faça suas perguntas")
-            
-            # Input para pergunta
-            question = st.text_input(
-                "Digite sua pergunta sobre as notas fiscais:",
-                placeholder="Ex: Qual o valor total das vendas em janeiro?",
-                key="question_input"
-            )
-            
-            col1, col2 = st.columns([1, 4])
-            
-            with col1:
-                if st.button("🔍 Consultar", disabled=not question):
-                    response = app.query_database(question)
-                    
-                    st.session_state.last_response = response
-                    
-                    
-            
-            with col2:
-                if st.button("🧹 Limpar"):
-                    if 'last_response' in st.session_state:
-                        del st.session_state.last_response
-                    st.rerun()
-            
-            # Mostrar resposta
-            if 'last_response' in st.session_state:
+        with tab1:    # Inicializações
+            if "messages" not in st.session_state:
+                st.session_state.messages = []
+            if "processing" not in st.session_state:
+                st.session_state.processing = False
+            if "pending_user_input" not in st.session_state:
+                st.session_state.pending_user_input = None
                 
-                result = st.session_state.last_response
-                
-                response_placeholder = st.empty()
-                full_response = ""
+            for message in st.session_state.messages:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
 
-                for char in result:
-                    full_response += char
-                    formatted_response = full_response.replace("\n", "<br>")
-                    response_placeholder.markdown(formatted_response, unsafe_allow_html=True)
-                    time.sleep(0.01)
+            if st.session_state.processing and st.session_state.pending_user_input:
+                with st.chat_message("assistant"):
+                    message_placeholder = st.empty()
+                    full_response = ""
+
+                    try:
+                        with st.spinner(""):
+                            response_data = app.query_database(st.session_state.pending_user_input)
+
+                        if response_data and "output" in response_data:
+                            assistant_response = response_data["output"]
+                            for char in assistant_response:
+                                full_response += char
+                                message_placeholder.markdown(full_response + "▌")
+                                time.sleep(0.03)
+                            message_placeholder.markdown(full_response)
+                        else:
+                            assistant_response = "Desculpe, não consegui processar sua pergunta."
+                            message_placeholder.markdown(assistant_response)
+
+                    except Exception as e:
+                        assistant_response = f"Ocorreu um erro: {e}"
+                        message_placeholder.markdown(assistant_response)
+
+                    st.session_state.messages.append({"role": "assistant", "content": full_response or assistant_response})
+                    st.session_state.processing = False
+                    st.session_state.pending_user_input = None
+                    st.rerun()
+
+            prompt = st.chat_input("Digite sua pergunta aqui...", key="user_input")
+
+            if prompt:
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                st.session_state.pending_user_input = prompt
+                st.session_state.processing = True
+                st.rerun()
+                
+            st.markdown("*O **Agente** pode cometer erros. Considere verificar informações importantes.*")
+            
+            if st.sidebar.button("🗑️ Limpar Histórico do Chat", key="clear_chat_sidebar"):
+                st.session_state.messages = []
+                st.session_state.pending_user_input = None
+                st.session_state.processing = False
+                st.rerun()
         
         with tab2:
             st.header("📋 Visão Geral dos Dados")
@@ -212,10 +215,10 @@ def main():
         with tab3:
             st.header("📖 Exemplos de Consultas")
             
-            exemplos = [
+            examples = [
                 {
-                    "categoria": "💰 Análises Financeiras",
-                    "perguntas": [
+                    "category": "💰 Análises Financeiras",
+                    "questions": [
                         "Qual o valor total de todas as notas fiscais?",
                         "Qual cliente tem o maior volume de compras?",
                         "Quais notas têm valor acima de R$ 10.000?",
@@ -223,8 +226,8 @@ def main():
                     ]
                 },
                 {
-                    "categoria": "📅 Análises Temporais", 
-                    "perguntas": [
+                    "category": "📅 Análises Temporais", 
+                    "questions": [
                         "Quantas notas foram emitidas em cada mês?",
                         "Qual mês teve maior faturamento?",
                         "Quais notas foram emitidas nos últimos 30 dias?",
@@ -232,8 +235,8 @@ def main():
                     ]
                 },
                 {
-                    "categoria": "🛍️ Análise de Produtos",
-                    "perguntas": [
+                    "category": "🛍️ Análise de Produtos",
+                    "questions": [
                         "Quais são os 10 produtos mais vendidos?",
                         "Qual produto tem maior valor unitário?",
                         "Quantos itens diferentes foram vendidos?",
@@ -241,8 +244,8 @@ def main():
                     ]
                 },
                 {
-                    "categoria": "👥 Análise de Clientes",
-                    "perguntas": [
+                    "category": "👥 Análise de Clientes",
+                    "questions": [
                         "Quais são os 5 melhores clientes por volume?",
                         "Quantos clientes únicos temos?",
                         "Qual cliente compra mais frequentemente?",
@@ -251,13 +254,12 @@ def main():
                 }
             ]
             
-            for exemplo in exemplos:
-                with st.expander(exemplo["categoria"]):
-                    for pergunta in exemplo["perguntas"]:
-                        st.info(f"💬 {pergunta}")
+            for ex in examples:
+                with st.expander(ex["category"]):
+                    for q in ex["questions"]:
+                        st.info(f"💬 {q}")
     
     else:
-        # Instruções iniciais
         st.info("""
         👋 **Como usar:**
         
@@ -268,8 +270,7 @@ def main():
         
         📁 **Formato esperado:** Arquivo ZIP com planilhas CSV (ex: cabecalho.csv, itens.csv)
         """)
-        
-        # Exemplo de estrutura esperada
+
         with st.expander("📋 Ver exemplo de estrutura dos dados"):
             st.markdown("""
             **cabecalho.csv:**

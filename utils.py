@@ -36,7 +36,7 @@ def get_custom_prefix(tables_info: dict) -> str:
 """
 
 def build_sql_agent(openai_api_key: str, db_path: str, tables_info: dict):
-    """Cria e retorna o agente SQL configurado"""
+    
     # Configurar LLM
     llm = ChatOpenAI(
         temperature=0,

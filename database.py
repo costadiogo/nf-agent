@@ -11,7 +11,7 @@ import tempfile
 import streamlit as st
 
 def sanitize_table_name(name: str) -> str:
-    """Sanitiza nome da tabela para ser válido em SQL"""
+    
     name = re.sub(r'[^\w]', '_', name)
     if name and name[0].isdigit():
         name = f"table_{name}"
@@ -20,13 +20,13 @@ def sanitize_table_name(name: str) -> str:
     return name if name else "unnamed_table"
 
 def quote_table_name(table_name: str) -> str:
-    """Adiciona aspas ao nome da tabela se necessário"""
+
     if not table_name.replace('_', '').isalnum() or table_name[0].isdigit():
         return f'"{table_name}"'
     return table_name
 
 def get_database_overview(db_path: str, tables_info: Dict[str, Any]) -> Dict[str, Any]:
-    """Retorna visão geral do banco"""
+
     overview = {}
     try:
         conn = sqlite3.connect(db_path)
@@ -45,18 +45,14 @@ def get_database_overview(db_path: str, tables_info: Dict[str, Any]) -> Dict[str
     return overview
 
 def process_uploaded_file(uploaded_file) -> Dict[str, Any]:
-    """
-    Processa um arquivo enviado (.zip, .csv ou .pdf).
-    Retorna um dicionário com os dados extraídos.
-    """
+
     result = {}
     file_name = uploaded_file.name.lower()
 
-    # Criar diretório temporário para armazenamento
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir)
 
-        # Caso .zip
+        # .zip
         if file_name.endswith(".zip"):
             with zipfile.ZipFile(uploaded_file, "r") as zip_ref:
                 zip_ref.extractall(tmp_path)
@@ -65,7 +61,7 @@ def process_uploaded_file(uploaded_file) -> Dict[str, Any]:
                 df = pd.read_csv(file, sep=None, engine='python')  # tenta detectar separador
                 result[file.stem] = df
 
-        # Caso .csv direto
+        # .csv
         elif file_name.endswith(".csv"):
             df = pd.read_csv(uploaded_file, sep=None, engine='python')
             name = Path(file_name).stem
@@ -74,13 +70,11 @@ def process_uploaded_file(uploaded_file) -> Dict[str, Any]:
     return result
 
 def save_df_to_sqlite(df, table_name, db_path):
-    """Salva DataFrame no SQLite em table_name."""
     conn = sqlite3.connect(db_path)
     df.to_sql(table_name, conn, if_exists='replace', index=False)
     conn.close()
 
 def process_zip_to_sqlite(zip_file, db_path, tables_info):
-    """Processa ZIP: extrai CSVs e salva no banco."""
     try:
         conn = sqlite3.connect(db_path)
         
@@ -107,7 +101,6 @@ def process_zip_to_sqlite(zip_file, db_path, tables_info):
         return False
 
 def process_csv_to_sqlite(csv_file, db_path, tables_info):
-    """Processa CSV: salva no banco."""
     try:
         df = pd.read_csv(csv_file)
         table_name = os.path.splitext(csv_file.name)[0].lower()
